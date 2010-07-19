@@ -40,6 +40,13 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 
+-record(request, {
+  socket,
+  length,
+  buffer,
+  from
+}).
+
 
 start_link() ->
   gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -80,9 +87,9 @@ init([]) ->
 %% @end
 %% @private
 %%-------------------------------------------------------------------------
-handle_call({call, AppId, SecretKey, Method, Args}, _From, State) ->
-  {ok, Reply} = vkontakte_invoke(AppId, SecretKey, Method, Args),
-  {stop, normal, {ok, Reply}, State};
+handle_call({call, AppId, SecretKey, Method, Args}, From, State) ->
+  {ok, Socket} = vkontakte_invoke(AppId, SecretKey, Method, Args),
+  {noreply, #request{socket = Socket, from = From, buffer = <<>>}};
   
 handle_call(Request, _From, State) ->
   {stop, {unknown_call, Request}, State}.
@@ -110,10 +117,40 @@ handle_cast(_Msg, State) ->
 %% @end
 %% @private
 %%-------------------------------------------------------------------------
+handle_info({http, Socket, {http_response, _Version, 200, _Status}}, State) ->
+  inet:setopts(Socket, [{active, once}]),
+  {noreply, State};
+
+handle_info({http, Socket, {http_header, _, 'Content-Length', _, Length}}, State) ->
+  inet:setopts(Socket, [{active, once}]),
+  {noreply, State#request{length = list_to_integer(Length)}};
+
+handle_info({http, Socket, {http_header, _, Header, _, Value}}, State) ->
+  inet:setopts(Socket, [{active, once}]),
+  {noreply, State};
+
+handle_info({http, Socket, http_eoh}, State) ->
+  inet:setopts(Socket, [{active, once},{packet,raw}]),
+  {noreply, State};
+
+handle_info({tcp, Socket, Bin}, #request{buffer = Buffer, length = Length} = State) when size(Buffer) + size(Bin) < Length ->
+  inet:setopts(Socket, [{active, once},{packet,raw}]),
+  {noreply, State#request{buffer = <<Buffer/binary, Bin/binary>>}};
+
+handle_info({tcp, Socket, Bin}, #request{buffer = Buffer, from = From} = State) ->
+  Reply = <<Buffer/binary, Bin/binary>>,
+  Decoded = mochijson2:decode(Reply),
+  gen_server:reply(From, {ok, Decoded}),
+  {noreply, State#request{buffer = <<>>}, 10};
+
+handle_info(timeout, State) ->
+  {stop, normal, State};
+
 handle_info({'DOWN', process, Client, _Reason}, Server) ->
   {noreply, Server};
 
 handle_info(_Info, State) ->
+  io:format("~p~n", [_Info]),
   {noreply, State}.
 
 %%-------------------------------------------------------------------------
@@ -137,6 +174,7 @@ code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
 
 
+to_list(A) when is_atom(A) -> atom_to_list(A);
 to_list(A) when is_integer(A) -> integer_to_list(A);
 to_list(A) when is_float(A) -> integer_to_list(round(A));
 to_list(A) when is_list(A) -> A;
@@ -155,29 +193,41 @@ hex(N) when N >= 10, N < 16 ->
   $a + (N-10).
 
 
+vkontakte_invoke(AppId, SecretKey, Method, Args) when is_list(Method) ->
+  vkontakte_invoke(AppId, SecretKey, list_to_binary(Method), Args);
+
+
 vkontakte_invoke(AppId, SecretKey, Method, Args) ->
   {MegaSec, Sec, Usec} = erlang:now(),
   Timestamp = MegaSec*1000000+Sec,
   Rand = Sec*1000000+Usec,
-  Required = [{api_id, AppId}, {v, "2.0"}, {timestamp, Timestamp}, {rand, Rand}, {method, Method}],
+  Required = [{api_id, AppId}, {v, "2.0"}, {timestamp, Timestamp}, {rand, Rand}, {method, Method}, {format, json}],
   
   UnsignedQuery = lists:keymerge(1, lists:keysort(1, Args), lists:keysort(1, Required)),
   S = lists:foldr(fun({Key, Value}, Acc) -> 
     [[atom_to_list(Key), "=", to_list(Value)] | Acc] 
-  end, [SecretKey], UnsignedQuery),
+  end, [], UnsignedQuery),
   
-  UnsignedBin = iolist_to_binary(S),
+  S1 = case SecretKey of
+    {ViewerId, ApiSecret} -> 
+      io:format("Plain signature: ~p, ~p~n", [ViewerId, ApiSecret]),
+      integer_to_list(ViewerId) ++ S ++ ApiSecret;
+    _ -> 
+      io:format("Secure signature: ~p~n", [SecretKey]),
+      S ++ SecretKey
+  end,
+  
+  UnsignedBin = iolist_to_binary(S1),
   Signature = binary_to_hexbin(erlang:md5(UnsignedBin)),
   Query = lists:keymerge(1, UnsignedQuery, [{sig, Signature}]),
+  io:format("Query: ~p~n", [Query]),
   QueryString = lists:foldl(fun({Key, Value}, Acc) ->
     Acc ++ [atom_to_list(Key), "=", to_list(Value), "&"]
   end, "", Query),
-  {ok, Socket} = gen_tcp:connect("api.vkontakte.ru", 80, [binary, {packet, raw}, {active, false}], 1000),
+  {ok, Socket} = gen_tcp:connect("api.vkontakte.ru", 80, [binary, {packet, http}, {active, once}], 1000),
   Request = iolist_to_binary(["GET /api.php?", QueryString, " HTTP/1.1\r\nHost: api.vkontakte.ru\r\n\r\n"]),
   io:format("~s~n", [binary_to_list(Request)]),
   gen_tcp:send(Socket, Request),
-  {ok, Reply} = gen_tcp:recv(Socket, 0, 10000),
-  io:format("~s~n", [binary_to_list(Reply)]),
-  {ok, Reply}.
+  {ok, Socket}.
 
 

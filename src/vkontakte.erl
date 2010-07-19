@@ -45,8 +45,16 @@
 
 call(Method, Args) ->
   {ok, AppId} = application:get_env(vkontakte, app_id),
-  {ok, SecretKey} = application:get_env(vkontakte, secret_key),
-  call(AppId, SecretKey, Method, Args).
+  {Secret, Args1} = case Method of
+    "secure."++_ -> 
+      {ok, SecretKey} = application:get_env(vkontakte, secret_key),
+      {SecretKey, Args};
+    _ ->
+      {ok, ApiKey} = application:get_env(vkontakte, api_key),
+      {value, {viewer_id, ViewerId}, Args_} = lists:keytake(viewer_id, 1, Args),
+      {{ViewerId, ApiKey}, Args_}
+  end,
+  call(AppId, Secret, Method, Args1).
 
 call(AppId, SecretKey, Method, Args) ->  
   {ok, Request} = vkontakte_sup:start_request(),
