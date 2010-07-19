@@ -1,0 +1,12 @@
+#!/usr/bin/env escript
+
+
+main([]) ->
+  code:add_path("ebin"),
+  code:add_path(".."),
+  vkontakte:start(),
+  % {ok, Reply} = vkontakte:call("secure.sendNotification", [{uids,419158},{message,<<"hi">>}])
+  {ok, Reply} = vkontakte:call("audio.get", [{uid,419158},{viewer_id,419158},{test_mode,1}]),
+  % {ok, Reply} = vkontakte:call("photos.getAlbums", [{uid,419158},{viewer_id,419158},{test_mode,1}])
+  io:format("~p~n", [Reply])
+  .
