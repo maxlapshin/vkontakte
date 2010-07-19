@@ -27,7 +27,7 @@ start_request() ->
 
 init([vkontakte_request]) ->
   {ok,
-    {_SupFlags = {simple_one_for_one, ?MAX_RESTART, ?MAX_TIME},
+    {_SupFlags = {simple_one_for_one, 10, 100},
       [
         {   undefined,                               % Id       = internal id
           {vkontakte_request,start_link,[]},                  % StartFun = {M, F, A}
@@ -49,13 +49,6 @@ init([]) ->
         infinity,                                % Shutdown = brutal_kill | int() >= 0 | infinity
         supervisor,                              % Type     = worker | supervisor
         []                                       % Modules  = [Module] | dynamic
-    },
-    {   each_minute_sup,                         % Id       = internal id
-        {each_minute,start_link,[]},             % StartFun = {M, F, A}
-        permanent,                               % Restart  = permanent | transient | temporary
-        2000,                                    % Shutdown = brutal_kill | int() >= 0 | infinity
-        worker,                                  % Type     = worker | supervisor
-        [each_minute]                               % Modules  = [Module] | dynamic
     }
   ],
   

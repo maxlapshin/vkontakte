@@ -44,19 +44,19 @@
 -export([test/0, archive/0, reload/0]).
 
 call(Method, Args) ->
-  AppId = application:get_env(vkontakte, app_id),
-  SecretKey = application:get_env(vkontakte, secret_key),
+  {ok, AppId} = application:get_env(vkontakte, app_id),
+  {ok, SecretKey} = application:get_env(vkontakte, secret_key),
   call(AppId, SecretKey, Method, Args).
 
 call(AppId, SecretKey, Method, Args) ->  
   {ok, Request} = vkontakte_sup:start_request(),
-  gen_server:call(Request, {call, AppId, SecretKey, Method, Args}).
+  vkontakte_request:call(Request, AppId, SecretKey, Method, Args).
 
 
 start() -> 
   ok = application:start(vkontakte),
   case file:path_consult(["priv", "/etc/erlyvideo"], "vkontakte.conf") of
-    {ok, Env, Path} ->     
+    {ok, Env, _Path} ->     
       [application:set_env(vkontakte, Key, Value) || {Key, Value} <- Env],
       ok;
     {error, enoent} ->
