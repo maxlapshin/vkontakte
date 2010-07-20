@@ -1,0 +1,14 @@
+Source: erlang-vkontakte
+Priority: extra
+Maintainer: Max Lapshin <max@maxidoors.ru>
+Build-Depends: debhelper (>= 7), erlang (>= 1:13.b.4)
+Standards-Version: 3.8.3
+Section: net
+Homepage: http://vkontakte.ru/page2369267
+
+Package: erlang-vkontakte
+Section: net
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, erlang (>= 1:13.b.4)
+Description: Erlang vkontakte library
+ Erlang library that can make API calls to vkontakte.ru
