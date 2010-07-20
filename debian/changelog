@@ -1,3 +1,9 @@
+erlang-vkontakte (0.4) unstable; urgency=low
+
+  Lowered log
+
+ -- Max Lapshin <max@maxidoors.ru>  Tue, 20 Jul 2010 11:39:57 +0400
+
 erlang-vkontakte (0.3) unstable; urgency=low
 
   Have doc
