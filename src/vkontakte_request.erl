@@ -150,7 +150,6 @@ handle_info({'DOWN', process, Client, _Reason}, Server) ->
   {noreply, Server};
 
 handle_info(_Info, State) ->
-  io:format("~p~n", [_Info]),
   {noreply, State}.
 
 %%-------------------------------------------------------------------------
@@ -210,23 +209,19 @@ vkontakte_invoke(AppId, SecretKey, Method, Args) ->
   
   S1 = case SecretKey of
     {ViewerId, ApiSecret} -> 
-      io:format("Plain signature: ~p, ~p~n", [ViewerId, ApiSecret]),
       integer_to_list(ViewerId) ++ S ++ ApiSecret;
     _ -> 
-      io:format("Secure signature: ~p~n", [SecretKey]),
       S ++ SecretKey
   end,
   
   UnsignedBin = iolist_to_binary(S1),
   Signature = binary_to_hexbin(erlang:md5(UnsignedBin)),
   Query = lists:keymerge(1, UnsignedQuery, [{sig, Signature}]),
-  io:format("Query: ~p~n", [Query]),
   QueryString = lists:foldl(fun({Key, Value}, Acc) ->
     Acc ++ [atom_to_list(Key), "=", to_list(Value), "&"]
   end, "", Query),
   {ok, Socket} = gen_tcp:connect("api.vkontakte.ru", 80, [binary, {packet, http}, {active, once}], 1000),
   Request = iolist_to_binary(["GET /api.php?", QueryString, " HTTP/1.1\r\nHost: api.vkontakte.ru\r\n\r\n"]),
-  io:format("~s~n", [binary_to_list(Request)]),
   gen_tcp:send(Socket, Request),
   {ok, Socket}.
 

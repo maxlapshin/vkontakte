@@ -64,13 +64,14 @@ call(AppId, SecretKey, Method, Args) ->
 start() -> 
   ok = application:start(vkontakte),
   case file:path_consult(["priv", "/etc/erlyvideo"], "vkontakte.conf") of
-    {ok, Env, _Path} ->     
+    {ok, Env, _Path} ->
       [application:set_env(vkontakte, Key, Value) || {Key, Value} <- Env],
       ok;
     {error, enoent} ->
-      error_logger:error_msg("No vkontakte.conf found");
+      % error_logger:error_msg("No vkontakte.conf found~n"),
+      ok;
     {error, Reason} ->
-      error_logger:error_msg("Couldn't load vkontakte.conf: ~p~n", [Reason]),
+      % error_logger:error_msg("Couldn't load vkontakte.conf: ~p~n", [Reason]),
       ok
   end.
   
