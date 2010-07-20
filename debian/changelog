@@ -1,3 +1,9 @@
+erlang-vkontakte (0.2) unstable; urgency=low
+
+  Ready to deploy
+
+ -- Max Lapshin <max@maxidoors.ru>  Tue, 20 Jul 2010 10:33:26 +0400
+
 erlang-vkontakte (0.1) unstable; urgency=low
 
   * Initial Release, able to make two types of request.
