@@ -1,5 +1,5 @@
 ERLDIR=`erl -eval 'io:format("~s", [code:root_dir()])' -s init stop -noshell`/lib/vkontakte-$(VERSION)
-DESTROOT:=$(CURDIR)/debian/erlyvideo
+DESTROOT:=$(CURDIR)/debian/erlang-vkontakte
 
 all: compile
 
