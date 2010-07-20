@@ -31,3 +31,5 @@ debian:
 	cp ../erlang-vkontakte_$(VERSION)*.deb $(DEBIANREPO)/binary/
 	rm ../erlang-vkontakte_$(VERSION)*
 	(cd $(DEBIANREPO)/..; ./update)
+
+.PHONY: debian
