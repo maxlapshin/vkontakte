@@ -1,5 +1,6 @@
 ERLDIR=`erl -eval 'io:format("~s", [code:root_dir()])' -s init stop -noshell`/lib/vkontakte-$(VERSION)
 DESTROOT:=$(CURDIR)/debian/erlang-vkontakte
+DEBIANREPO=/apps/erlyvideo/debian/public
 
 all: compile
 
@@ -22,3 +23,11 @@ install: compile
 	install -c -m 644 ebin/*.beam ebin/*.app $(DESTROOT)$(ERLDIR)/ebin/
 	install -c -m 644 src/* $(DESTROOT)$(ERLDIR)/src/
 	install -c -m 644 priv/vkontakte.conf.sample $(DESTROOT)$(ERLDIR)/priv/vkontakte.conf.sample
+
+
+debian:
+	dpkg-buildpackage -rfakeroot -D -i -I -S -sa
+	debuild -us -uc
+	cp ../erlang-vkontakte_$(VERSION)*.deb $(DEBIANREPO)/binary/
+	rm ../erlang-vkontakte_$(VERSION)*
+	(cd $(DEBIANREPO)/..; ./update)
