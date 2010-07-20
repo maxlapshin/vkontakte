@@ -1,20 +1,24 @@
+ERLDIR=`erl -eval 'io:format("~s", [code:root_dir()])' -s init stop -noshell`/lib/vkontakte-$(VERSION)
+DESTROOT:=$(CURDIR)/debian/erlyvideo
 
 all: compile
 
 compile:
-	ERL_LIBS=..:../erlyvideo/deps/ erl -make
+	erl -make
 	
 clean:
 	rm -fv ebin/*.beam
 	rm -fv erl_crash.dump
 
-run: compile
-	erl -pa ebin -boot start_sasl -s registrator -sname registrator
-	
 test:
-	@erl -pa ebin -s registrator test -noshell -noinput -s init stop
+	@erl -pa ebin -s vkontakte test -noshell -noinput -s init stop
 
 
-archive: compile
-	erl -pa ebin -hidden -noshell -s registrator archive -s init stop
-
+install: compile
+	mkdir -p $(DESTROOT)$(ERLDIR)/ebin
+	mkdir -p $(DESTROOT)$(ERLDIR)/src
+	mkdir -p $(DESTROOT)$(ERLDIR)/priv
+	mkdir -p $(DESTROOT)$(ERLDIR)/include
+	install -c -m 644 ebin/*.beam ebin/*.app $(DESTROOT)$(ERLDIR)/ebin/
+	install -c -m 644 src/* $(DESTROOT)$(ERLDIR)/src/
+	install -c -m 644 priv/vkontakte.conf.sample $(DESTROOT)$(ERLDIR)/priv/vkontakte.conf.sample

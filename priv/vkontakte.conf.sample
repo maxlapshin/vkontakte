@@ -1,0 +1,3 @@
+{app_id, 1}.
+{api_key, "small_key"}.
+{secret_key, "long_key"}.
