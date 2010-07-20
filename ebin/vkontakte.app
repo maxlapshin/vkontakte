@@ -1,6 +1,6 @@
 {application, vkontakte,
 [{description, "vkontakte"},
- {vsn, "0.1"},
+ {vsn, "0.4"},
  {modules, [
 	vkontakte,
 	vkontakte_sup,
