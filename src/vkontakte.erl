@@ -37,13 +37,14 @@
 
 
 % PLUGIN API
--export([start/0, stop/0]).
+-export([start/0, try_start/0, stop/0]).
 
 -export([call/2, call/4]).
 
 -export([test/0, archive/0, reload/0]).
 
 call(Method, Args) ->
+  try_start(),
   {ok, AppId} = application:get_env(vkontakte, app_id),
   {Secret, Args1} = case Method of
     "secure."++_ -> 
@@ -56,13 +57,19 @@ call(Method, Args) ->
   end,
   call(AppId, Secret, Method, Args1).
 
-call(AppId, SecretKey, Method, Args) ->  
+call(AppId, SecretKey, Method, Args) -> 
   {ok, Request} = vkontakte_sup:start_request(),
   vkontakte_request:call(Request, AppId, SecretKey, Method, Args).
 
 
+try_start() ->
+  case lists:keyfind(?MODULE, 1, application:loaded_applications()) of
+    false -> start();
+    _ -> ok
+  end.
+
 start() -> 
-  ok = application:start(vkontakte),
+  application:start(vkontakte),
   case file:path_consult(["priv", "/etc/erlyvideo"], "vkontakte.conf") of
     {ok, Env, _Path} ->
       [application:set_env(vkontakte, Key, Value) || {Key, Value} <- Env],

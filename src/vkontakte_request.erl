@@ -49,7 +49,7 @@
 
 
 start_link() ->
-  gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+  gen_server:start_link(?MODULE, [], []).
 
 
 call(Request, AppId, SecretKey, Method, Args) ->
